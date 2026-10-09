@@ -1,0 +1,10 @@
+project_id = "rckpuebaiswrxzmywllv"
+
+[functions.receber-webhook-wrike]
+verify_jwt = false
+
+[functions.consultar-performance]
+verify_jwt = false
+
+[functions.sincronizar-wrike]
+verify_jwt = false
