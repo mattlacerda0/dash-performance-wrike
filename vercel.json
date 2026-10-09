@@ -1,0 +1,14 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": null,
+  "outputDirectory": "public",
+  "functions": {
+    "api/performance.js": {
+      "maxDuration": 30
+    },
+    "api/exportar-tarefas.js": {
+      "maxDuration": 60
+    }
+  }
+}
