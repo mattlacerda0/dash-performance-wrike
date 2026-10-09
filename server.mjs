@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
 import { dirname, extname, join, normalize, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import XLSX from "xlsx";
+import { criarArquivoTarefas } from "./lib/exportar-tarefas.mjs";
 
 const rootDir = dirname(fileURLToPath(import.meta.url));
 loadEnv(join(rootDir, ".env"));
@@ -118,28 +118,12 @@ function nomesContatos(ids, contatos) {
   }).join(", ");
 }
 
-async function exportarTarefas(_url, response) {
+async function exportarTarefas(url, response) {
   try {
-    const [tarefas, camposPersonalizados] = await Promise.all([buscarTarefasWrike(), consultarWrike("/customfields").then((corpo) => corpo.data || [])]);
-    const idsPessoas = [...new Set(tarefas.flatMap((tarefa) => [...(tarefa.responsibleIds || []), ...(tarefa.authorIds || []), ...(tarefa.followerIds || [])]))];
-    const contatos = await buscarContatosWrike(idsPessoas);
-    const titulosCampos = new Map((camposPersonalizados || []).map((campo) => [campo.id, campo.title || campo.id]));
-    const camposNasTarefas = [...new Set(tarefas.flatMap((tarefa) => (tarefa.customFields || []).map((campo) => campo.id)))];
-    const cabecalhos = ["ID", "Título", "Link no Wrike", "Status", "ID do status personalizado", "Importância", "Criado em", "Atualizado em", "Concluído em", "Tipo de datas", "Início planejado", "Prazo", "Duração (minutos)", "Descrição", "Descrição breve", "Responsáveis", "Autores", "Seguidores", "Pastas pai (IDs)", "Superpastas (IDs)", "Subtarefas (IDs)", "Tarefas pai (IDs)", "Dependências (IDs)", "Compartilhado com (IDs)", "Tipo personalizado", "Quantidade de anexos", "Possui anexos", "Metadados", ...camposNasTarefas.map((id) => `Campo: ${titulosCampos.get(id) || id}`)];
-    const linhas = tarefas.map((tarefa) => {
-      const valores = new Map((tarefa.customFields || []).map((campo) => [campo.id, campo.value]));
-      const datas = tarefa.dates || {};
-      return [tarefa.id, tarefa.title, tarefa.permalink, tarefa.status, tarefa.customStatusId, tarefa.importance, dataPlanilha(tarefa.createdDate), dataPlanilha(tarefa.updatedDate), dataPlanilha(tarefa.completedDate), datas.type, dataPlanilha(datas.start || datas.startDate), dataPlanilha(datas.due || datas.dueDate), datas.duration, textoPlanilha(tarefa.description), textoPlanilha(tarefa.briefDescription), textoPlanilha(nomesContatos(tarefa.responsibleIds, contatos)), textoPlanilha(nomesContatos(tarefa.authorIds, contatos)), textoPlanilha(nomesContatos(tarefa.followerIds, contatos)), textoPlanilha(tarefa.parentIds), textoPlanilha(tarefa.superParentIds), textoPlanilha(tarefa.subTaskIds), textoPlanilha(tarefa.superTaskIds), textoPlanilha(tarefa.dependencyIds), textoPlanilha(tarefa.sharedIds), tarefa.customItemTypeId, tarefa.attachmentCount, tarefa.hasAttachments ? "Sim" : "Não", textoPlanilha(tarefa.metadata), ...camposNasTarefas.map((id) => textoPlanilha(valores.get(id)))];
-    });
-    const planilha = XLSX.utils.aoa_to_sheet([cabecalhos, ...linhas], { cellDates: true });
-    planilha["!autofilter"] = { ref: XLSX.utils.encode_range({ s: { c: 0, r: 0 }, e: { c: cabecalhos.length - 1, r: linhas.length } }) };
-    planilha["!cols"] = cabecalhos.map((cabecalho) => ({ wch: cabecalho.includes("Descrição") ? 60 : Math.min(Math.max(cabecalho.length + 3, 14), 36) }));
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, planilha, "Tarefas");
-    const arquivo = XLSX.write(workbook, { bookType: "xlsx", type: "buffer", compression: true, cellDates: true });
-    const data = new Date().toISOString().slice(0, 10);
-    response.writeHead(200, { "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Content-Disposition": `attachment; filename="tarefas-wrike-${data}.xlsx"`, "Cache-Control": "no-store" });
-    response.end(arquivo);
+    const escopo = url.searchParams.get("escopo") === "qualidade" ? "qualidade" : "todas";
+    const resultado = await criarArquivoTarefas(process.env, escopo);
+    response.writeHead(200, { "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Content-Disposition": `attachment; filename="${resultado.nome}"`, "Cache-Control": "no-store" });
+    response.end(resultado.arquivo);
   } catch (error) {
     return sendJson(response, 500, { erro: error instanceof Error ? error.message : "Não foi possível extrair as tarefas do Wrike." });
   }
@@ -160,7 +144,7 @@ async function servirArquivo(pathname, response) {
 createServer(async (request, response) => {
   const url = new URL(request.url || "/", `http://${request.headers.host || "localhost"}`);
   if (request.method === "GET" && url.pathname === "/api/performance") return consultarPerformance(url, response);
-  if (request.method === "GET" && url.pathname === "/api/exportar-tarefas.xlsx") return exportarTarefas(url, response);
+  if (request.method === "GET" && (url.pathname === "/api/exportar-tarefas" || url.pathname === "/api/exportar-tarefas.xlsx")) return exportarTarefas(url, response);
   if (request.method === "GET") return servirArquivo(url.pathname, response);
   return sendJson(response, 405, { erro: "Método não permitido." });
 }).listen(port, () => console.log(`Dashboard de performance disponível em http://localhost:${port}`));

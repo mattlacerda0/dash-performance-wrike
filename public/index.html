@@ -10,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Carme&family=Ubuntu:wght@400;500;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/styles.css" />
     <link rel="stylesheet" href="/pagination.css" />
+    <link rel="stylesheet" href="/export-dialog.css" />
   </head>
   <body>
     <main class="portal-main">
@@ -23,6 +24,20 @@
         <div class="filter-actions"><button id="limpar" class="btn btn-ghost" type="button">Limpar filtros</button></div>
       </div></section>
       <section id="dashboard" aria-live="polite"><div class="gd-status">Carregando indicadores…</div></section>
-    </main><script type="module" src="/app.js"></script>
+    </main>
+    <dialog id="dialogo-exportacao" class="export-dialog" aria-labelledby="titulo-exportacao">
+      <form method="dialog" class="export-dialog-content">
+        <h2 id="titulo-exportacao">Exportar tarefas</h2>
+        <p class="note-muted">Escolha quais tarefas devem ser incluídas no arquivo XLSX.</p>
+        <fieldset class="export-options">
+          <legend>Escopo da extração</legend>
+          <label><input type="radio" name="escopo-exportacao" value="todas" checked /> Todas as tarefas do espaço</label>
+          <label><input type="radio" name="escopo-exportacao" value="qualidade" /> Somente tarefas com pendências de qualidade</label>
+        </fieldset>
+        <p class="export-note">A exportação de pendências usa as regras de descrição, prazo, responsável, OKR e campo Itens.</p>
+        <div class="export-dialog-actions"><button id="cancelar-exportacao" class="btn btn-ghost" value="cancel" type="submit">Cancelar</button><button id="confirmar-exportacao" class="btn btn-primary" value="default" type="button">Baixar XLSX</button></div>
+      </form>
+    </dialog>
+    <script type="module" src="/app.js"></script>
   </body>
 </html>

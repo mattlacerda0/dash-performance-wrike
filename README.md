@@ -23,3 +23,9 @@ Para o agendamento, crie no Vault o segredo `performance_wrike_sync_secret` com 
 ## Limitações conscientes
 
 Cycle time e gargalos começam a ser medidos após o webhook ser ativado. Bugs críticos e validação de hipóteses aparecem como dependentes de classificação enquanto os campos correspondentes não existirem no Wrike.
+
+## Publicação na Vercel
+
+A Vercel serve o painel e encaminha as rotas `/api/performance` e `/api/exportar-tarefas` para as Edge Functions do Supabase. Configure `SUPABASE_FUNCAO_PERFORMANCE_URL` e `SUPABASE_PUBLISHABLE_KEY` nas variáveis de ambiente da Vercel. A chave pública autoriza a chamada à Edge Function; o token do Wrike permanece somente nos segredos das Edge Functions.
+
+O botão de exportação permite escolher entre todas as tarefas e apenas tarefas com pendências de qualidade. A segunda opção considera descrição, prazo, responsável, OKR e o campo `Itens`.

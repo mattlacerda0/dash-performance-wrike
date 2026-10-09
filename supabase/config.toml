@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.sincronizar-wrike]
 verify_jwt = false
+
+[functions.exportar-tarefas-wrike]
+verify_jwt = false
